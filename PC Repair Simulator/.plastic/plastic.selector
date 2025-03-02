@@ -1,0 +1,4 @@
+repository "PC Repair Simulator/PC Repair Simulator@18968252962400@cloud"
+  path "/"
+    br "/main"
+    co "/main"
