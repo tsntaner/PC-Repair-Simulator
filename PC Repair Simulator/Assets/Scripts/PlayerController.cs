@@ -4,36 +4,31 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Cinemachine;
 
-public class FirstPersonController : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
-    [Header("Mouse & Camera Settings")]
+    [Header("Camera & Mouse Settings")]
     [SerializeField] private float mouseSensitivity = 2f;
     [SerializeField] private Transform playerBody;
-    [SerializeField] private CinemachineCamera playerCamera;
-    
+    [SerializeField] private CinemachineRotateWithFollowTarget playerCamera;
+
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float sprintSpeed = 8f;
-    [SerializeField] private float crouchSpeed = 2.5f;
-    [SerializeField] private float jumpForce = 5f;
-    [SerializeField] private float crouchHeight = 1f;
-    [SerializeField] private float normalHeight = 2f;
     [SerializeField] private CharacterController characterController;
     
     [Header("Physics")]
     [SerializeField] private float gravity = -9.81f;
+    [SerializeField] private float jumpForce = 5f;
 
     private PlayerInput playerInput;
     private InputAction moveAction;
     private InputAction lookAction;
     private InputAction jumpAction;
     private InputAction sprintAction;
-    private InputAction crouchAction;
 
     private float xRotation = 0f;
     private Vector3 velocity;
     private bool isGrounded;
-    private bool isCrouching = false;
 
     private void Awake()
     {
@@ -42,7 +37,6 @@ public class FirstPersonController : MonoBehaviour
         lookAction = playerInput.actions["Look"];
         jumpAction = playerInput.actions["Jump"];
         sprintAction = playerInput.actions["Sprint"];
-        crouchAction = playerInput.actions["Crouch"];
     }
 
     private void Start()
@@ -63,11 +57,15 @@ public class FirstPersonController : MonoBehaviour
         float mouseX = lookInput.x * mouseSensitivity;
         float mouseY = lookInput.y * mouseSensitivity;
 
+        // Yukarı aşağı bakışı sınırla
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
-        playerBody.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
-        transform.Rotate(Vector3.up * mouseX);
+        // Karakteri döndür
+        playerBody.Rotate(Vector3.up * mouseX);
+        
+        // Cinemachine kamerayı karakterin dönüşüne uyumlu hale getir
+        playerCamera.transform.rotation = Quaternion.Euler(xRotation, playerBody.eulerAngles.y, 0);
     }
 
     private void HandleMovement()
@@ -82,25 +80,7 @@ public class FirstPersonController : MonoBehaviour
         float moveX = moveInput.x;
         float moveZ = moveInput.y;
 
-        float currentSpeed = moveSpeed;
-        if (sprintAction.IsPressed())
-        {
-            currentSpeed = sprintSpeed;
-        }
-        if (crouchAction.IsPressed())
-        {
-            currentSpeed = crouchSpeed;
-            if (!isCrouching)
-            {
-                characterController.height = crouchHeight;
-                isCrouching = true;
-            }
-        }
-        else if (isCrouching)
-        {
-            characterController.height = normalHeight;
-            isCrouching = false;
-        }
+        float currentSpeed = sprintAction.IsPressed() ? sprintSpeed : moveSpeed;
 
         Vector3 move = transform.right * moveX + transform.forward * moveZ;
         characterController.Move(move * currentSpeed * Time.deltaTime);
